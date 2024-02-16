@@ -91,3 +91,45 @@ On relance la commande suivante :
     > python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU))"
 
 On refait la même chose pour la seconde carte graphique RTX 2060 alias 2d:00:0
+
+##  Tips
+
+- Ajouter l'environnement de conda, et la branche de git dans le prompt du terminal :
+
+On indique à conda de ne pas afficher lui même l'environnement activé.
+
+    > conda config --set changeps1 False
+
+On modifie le fichier .bashrc
+
+    > nano ~/.bashrc
+
+Une fois le fichier .bashrc en mode edition copier/coller le code suivant :
+
+    # CONDA
+    function parse_conda_env () {
+        if [ ! -z "$CONDA_DEFAULT_ENV" ]
+        then
+            echo "($(basename "$CONDA_DEFAULT_ENV")) "
+        fi
+    }
+
+    # GIT BRANCH
+    function parse_git_branch () {
+    git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/(\1)/'
+    }
+
+    # COLORS
+    BLUE="\[\033[0;34m\]"
+    RED="\[\033[0;31m\]"
+    YELLOW="\[\033[0;33m\]"
+    GREEN="\[\033[01;32m\]"
+    CYAN="\[\033[0;36m\]"
+    NO_COLOR="\[\033[0m\]"
+
+    PROMPT_DIRTRIM=2
+    PS1="$CYAN\$(parse_conda_env)$GREEN\u@\h$BLUE:\w $YELLOW\$(parse_git_branch)$NO_COLOR\$ ";
+
+On refresh le fichier .bashrc
+
+    > source ~/.bashrc
