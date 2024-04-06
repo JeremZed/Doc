@@ -206,7 +206,21 @@ npm install
 npm run build
 ```
 
-## Création du vhost apache
+## Activation du protocol http2 - Apache
+
+```sh
+sudo a2enmod expires
+sudo a2dismod php8.2
+sudo a2enconf php8.2-fpm
+sudo a2enmod proxy_fcgi
+sudo a2dismod mpm_prefork
+sudo a2enmod mpm_event
+sudo a2enmod ssl
+sudo a2enmod http2
+sudo systemctl restart apache2
+```
+
+##  Création du vhost apache
 
 ```sh
 cd /etc/apache2/sites-available/
@@ -228,6 +242,7 @@ sudo nano mysite.conf
 
     ServerAdmin webmaster@localhost
     DocumentRoot /home/jeremy/Lab/repo/site-example/site/public
+    Protocols h2
 
     # Available loglevels: trace8, ..., trace1, debug, info, notice, warn,
     # error, crit, alert, emerg.
@@ -243,6 +258,15 @@ sudo nano mysite.conf
         AllowOverride All
         Require all granted
     </Directory>
+
+    <FilesMatch \.php$>
+        SetHandler "proxy:unix:/run/php/php8.2-fpm.sock|fcgi://localhost/"
+    </FilesMatch>
+
+    <FilesMatch "\.(jpe?g|png|webp|gif|js|css|woff2)$">
+        ExpiresActive On
+        ExpiresDefault "access plus 1 year"
+    </FilesMatch>
 
     # For most configuration files from conf-available/, which are
     # enabled or disabled at a global level, it is possible to
@@ -311,12 +335,77 @@ Créer un nouvel utilisateur avec un mot de passe.
 
 ```sh
 sudo mysql
-CREATE USER 'username'@'localhost' IDENTIFIED BY 'here-password-very-strong';
-GRANT ALL PRIVILEGES ON *.* TO 'username'@'localhost' WITH GRANT OPTION;
+CREATE USER 'cms_dev'@'localhost' IDENTIFIED BY 'super-password';
+GRANT ALL PRIVILEGES ON *.* TO 'cms_dev'@'localhost' WITH GRANT OPTION;
 ```
 
 Si une erreur du type "Client does not support authentification protocol requested by server..."
 
 ```sh
-CREATE USER 'username'@'localhost' IDENTIFIED WITH mysql_native_password BY 'here-password-very-strong';
+CREATE USER 'username'@'localhost' IDENTIFIED WITH mysql_native_password BY 'super-password';
+```
+
+Installation du driver pour PHP
+
+```sh
+sudo apt install php8.2-mysql
+```
+
+## Cors - Laravel
+
+```php
+php artisan config:publish cors
+```
+
+Exemple dans le fichier de config/cors.php
+
+```php
+<?php
+
+return [
+
+    /*
+    |--------------------------------------------------------------------------
+    | Cross-Origin Resource Sharing (CORS) Configuration
+    |--------------------------------------------------------------------------
+    |
+    | Here you may configure your settings for cross-origin resource sharing
+    | or "CORS". This determines what cross-origin operations may execute
+    | in web browsers. You are free to adjust these settings as needed.
+    |
+    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
+    |
+    */
+
+    'paths' => ['v1/*'],
+
+    'allowed_methods' => ['*'],
+
+    'allowed_origins' => ['*'],
+
+    'allowed_origins_patterns' => [],
+
+    'allowed_headers' => ['*'],
+
+    'exposed_headers' => [],
+
+    'max_age' => 0,
+
+    'supports_credentials' => false,
+
+];
+```
+
+Et ne pas oublier d'ajouter dans le fichier bootstrap/app.php
+
+```php
+...
+    ->withMiddleware(function (Middleware $middleware) {
+        $middleware->use([
+            // ...
+            \Illuminate\Http\Middleware\HandleCors::class,
+            // ...
+        ]);
+    })
+...
 ```
